@@ -19,11 +19,24 @@ func TestFileAndKeychainBackendsRoundTrip(t *testing.T) {
 	if got, err := Get("prod", BackendKeychain, ""); err != nil || got != "secret2" {
 		t.Fatalf("keychain Get got=%q err=%v", got, err)
 	}
-	if err := Delete("prod"); err != nil {
+	if err := Delete("prod", BackendKeychain); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
 	if _, err := Get("prod", BackendKeychain, ""); err != ErrNotFound {
 		t.Fatalf("after delete err=%v, want ErrNotFound", err)
+	}
+}
+
+func TestDeleteSkipsKeychainForFileBackends(t *testing.T) {
+	k, restore := UseMockKeyring()
+	defer restore()
+	k.FailDelete = true
+
+	if err := Delete("prod", BackendFile); err != nil {
+		t.Fatalf("file delete should not touch keychain: %v", err)
+	}
+	if err := Delete("legacy", ""); err != nil {
+		t.Fatalf("legacy file delete should not touch keychain: %v", err)
 	}
 }
 

@@ -98,6 +98,38 @@ func TestAuthSaveStatusAndListUseFileBackendWithoutLeakingSecret(t *testing.T) {
 	}
 }
 
+func TestAuthLogoutRemovesFileBackedProfileWithKeychainDisabled(t *testing.T) {
+	withConfig(t)
+	secret := "oopsie_secret_1234567890"
+
+	_, _, err := runOopsie(t, []string{
+		"auth", "save",
+		"--profile", "prod",
+		"--api-key", secret,
+		"--api-url", "https://oopsie.example.com",
+		"--storage", "file",
+	}, "")
+	if err != nil {
+		t.Fatalf("auth save: %v", err)
+	}
+
+	stdout, _, err := runOopsie(t, []string{"auth", "logout", "prod"}, "")
+	if err != nil {
+		t.Fatalf("auth logout should not require keychain for file-backed profile: %v", err)
+	}
+	if !strings.Contains(stdout, `"removed": true`) || !strings.Contains(stdout, `"profile": "prod"`) {
+		t.Fatalf("auth logout missing removal confirmation: %s", stdout)
+	}
+
+	list, _, err := runOopsie(t, []string{"auth", "list"}, "")
+	if err != nil {
+		t.Fatalf("auth list after logout: %v", err)
+	}
+	if strings.Contains(list, `"name": "prod"`) || strings.Contains(list, secret) {
+		t.Fatalf("auth logout left file-backed profile behind: %s", list)
+	}
+}
+
 func TestErrorListSendsAuthProjectHeaderAndBoundedQuery(t *testing.T) {
 	var cap requestCapture
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

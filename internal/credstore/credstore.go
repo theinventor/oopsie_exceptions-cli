@@ -165,11 +165,18 @@ func Get(profile, backend, fileSecret string) (string, error) {
 	}
 }
 
-func Delete(profile string) error {
-	if err := active.Delete(Service, profile); err != nil {
-		return fmt.Errorf("keychain delete: %w", err)
+func Delete(profile, backend string) error {
+	switch backend {
+	case BackendKeychain:
+		if err := active.Delete(Service, profile); err != nil {
+			return fmt.Errorf("keychain delete: %w", err)
+		}
+		return nil
+	case BackendFile, "":
+		return nil
+	default:
+		return fmt.Errorf("credstore.Delete: unsupported backend %q", backend)
 	}
-	return nil
 }
 
 func Describe(backend string) string {

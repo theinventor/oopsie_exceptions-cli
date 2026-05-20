@@ -217,13 +217,14 @@ func newAuthLogoutCmd() *cobra.Command {
 			if name == "" {
 				return usageError("no profile selected")
 			}
-			if err := credstore.Delete(name); err != nil {
-				return err
-			}
-			removed := f.Delete(name)
-			if !removed {
+			p, ok := f.Profiles[name]
+			if !ok {
 				return usageError("no profile named %q", name)
 			}
+			if err := credstore.Delete(name, p.Backend); err != nil {
+				return err
+			}
+			_ = f.Delete(name)
 			if err := f.Save(); err != nil {
 				return err
 			}
